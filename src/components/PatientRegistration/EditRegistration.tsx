@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Patient } from '../../types';
+import { Patient, Registration } from '../../types';
 import Breadcrumb from '../Layout/Breadcrumb';
 import { registrationService } from '../../services/registrationService';
 
-interface CreateRegistrationProps {
+interface EditRegistrationProps {
   patient: Patient;
+  registration: Registration;
   onNavigateToDashboard: () => void;
   onNavigateToRegistration: () => void;
   onNavigateToSelectPatient: () => void;
@@ -12,8 +13,9 @@ interface CreateRegistrationProps {
   onRegistrationComplete: () => void;
 }
 
-const CreateRegistration: React.FC<CreateRegistrationProps> = ({
+const EditRegistration: React.FC<EditRegistrationProps> = ({
   patient,
+  registration,
   onNavigateToDashboard,
   onNavigateToRegistration,
   onNavigateToSelectPatient,
@@ -21,10 +23,10 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
   onRegistrationComplete
 }) => {
   const [formData, setFormData] = useState({
-    ruangan: '',
-    dokter: '',
-    namaPengantar: patient.namaLengkap,
-    teleponPengantar: patient.telepon
+    ruangan: registration.ruangan || '',
+    dokter: registration.dokter || '',
+    namaPengantar: registration.namaPengantar || patient.namaLengkap,
+    teleponPengantar: registration.teleponPengantar || patient.telepon
   });
 
   const [loading, setLoading] = useState(false);
@@ -52,25 +54,26 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
 
     try {
       setLoading(true);
-      await registrationService.createRegistration(
+      await registrationService.updateRegistration(
+        registration.id,
         patient.id,
         formData.ruangan,
         formData.dokter,
         formData.namaPengantar,
         formData.teleponPengantar
       );
-      onShowNotification?.('success', 'Pendaftaran pasien berhasil disimpan');
+      onShowNotification?.('success', 'Pendaftaran pasien berhasil diperbarui');
       onRegistrationComplete();
     } catch (error) {
-      console.error('Error creating registration:', error);
-      onShowNotification?.('error', 'Gagal menyimpan pendaftaran pasien');
+      console.error('Error updating registration:', error);
+      onShowNotification?.('error', 'Gagal memperbarui pendaftaran pasien');
     } finally {
       setLoading(false);
     }
   };
 
   const handleCancel = () => {
-    onNavigateToSelectPatient();
+    onNavigateToRegistration();
   };
 
   return (
@@ -80,11 +83,11 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
           { label: 'Dashboard', onClick: onNavigateToDashboard },
           { label: 'Pendaftaran Pasien', onClick: onNavigateToRegistration },
           { label: 'Pilih Pasien', onClick: onNavigateToSelectPatient },
-          { label: 'Buat Pendaftaran Pasien', active: true }
+          { label: 'Edit Pendaftaran Pasien', active: true }
         ]}
       />
       
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Buat Pendaftaran Pasien</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Edit Pendaftaran Pasien</h1>
 
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -252,4 +255,4 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
   );
 };
 
-export default CreateRegistration;
+export default EditRegistration;

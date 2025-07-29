@@ -1,172 +1,153 @@
-import { supabase } from '../lib/supabase';
-import { Registration } from '../types';
-import { Database } from '../lib/supabase';
+const API_BASE_URL = "http://localhost:3001";
 
-type RegistrationRow = Database['public']['Tables']['registrations']['Row'];
-type RegistrationInsert = Database['public']['Tables']['registrations']['Insert'];
+interface Registration {
+  id: string;
+  idPendaftaran: string;
+  noAntrian: number;
+  tanggal: string;
+  patientId: string;
+  status: string;
+  ruangan?: string;
+  dokter?: string;
+  namaPengantar?: string;
+  teleponPengantar?: string;
+  noRekamMedik?: string;
+  pasien?: string;
+}
 
-// Convert database row to Registration type
-const convertToRegistration = (row: RegistrationRow & { patients?: any }): Registration => ({
-  id: row.id,
-  idPendaftaran: row.id_pendaftaran,
-  noAntrian: row.no_antrian,
-  tanggal: row.tanggal,
-  noRekamMedik: row.patients?.rekam_medik || '',
-  pasien: row.patients?.nama_lengkap || '',
-  status: row.status as 'Dalam Antrian' | 'Dalam Pemeriksaan' | 'Selesai',
-  createdAt: row.created_at
+const convertToRegistration = (data: any): Registration => ({
+  id: data.id,
+  idPendaftaran: data.id_pendaftaran,
+  noAntrian: data.no_antrian,
+  tanggal: data.tanggal,
+  patientId: data.patient_id,
+  status: data.status,
+  ruangan: data.ruangan,
+  dokter: data.dokter,
+  namaPengantar: data.nama_pengantar,
+  teleponPengantar: data.telepon_pengantar,
+  noRekamMedik: data.no_rekam_medik,
+  pasien: data.pasien,
 });
 
 export const registrationService = {
-  // Get all registrations with patient data
+  async createRegistration(
+    patientId: string,
+    ruangan: string,
+    dokter: string,
+    namaPengantar: string,
+    teleponPengantar: string
+  ): Promise<Registration> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/registrations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patient_id: patientId,
+          ruangan,
+          dokter,
+          nama_pengantar: namaPengantar,
+          telepon_pengantar: teleponPengantar,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          `Gagal menyimpan pendaftaran: ${
+            errorData.message || response.statusText
+          }`
+        );
+      }
+
+      const data = await response.json();
+      return convertToRegistration(data);
+    } catch (error) {
+      console.error("Error in createRegistration:", error);
+      throw error;
+    }
+  },
+
+  async updateRegistration(
+    id: string,
+    patientId: string,
+    ruangan: string,
+    dokter: string,
+    namaPengantar: string,
+    teleponPengantar: string
+  ): Promise<Registration> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/registrations/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patient_id: patientId,
+          ruangan,
+          dokter,
+          nama_pengantar: namaPengantar,
+          telepon_pengantar: teleponPengantar,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          `Gagal memperbarui pendaftaran: ${
+            errorData.message || response.statusText
+          }`
+        );
+      }
+
+      const data = await response.json();
+      return convertToRegistration(data);
+    } catch (error) {
+      console.error("Error in updateRegistration:", error);
+      throw error;
+    }
+  },
+
   async getAllRegistrations(): Promise<Registration[]> {
     try {
-      const { data, error } = await supabase
-        .from('registrations')
-        .select(`
-          *,
-          patients (
-            rekam_medik,
-            nama_lengkap
-          )
-        `)
-        .order('created_at', { ascending: true });
+      const response = await fetch(`${API_BASE_URL}/registrations`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
 
-      if (error) {
-        console.error('Error fetching registrations:', error);
-        throw new Error('Gagal mengambil data pendaftaran');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          `Gagal mengambil data pendaftaran: ${
+            errorData.message || response.statusText
+          }`
+        );
       }
 
-      return data ? data.map(convertToRegistration) : [];
+      const data = await response.json();
+      return data.map(convertToRegistration);
     } catch (error) {
-      console.error('Error in getAllRegistrations:', error);
+      console.error("Error in getAllRegistrations:", error);
       throw error;
     }
   },
 
-  // Create new registration
-  async createRegistration(patientId: string): Promise<Registration> {
-    try {
-      // Generate ID pendaftaran
-      const { data: idPendaftaranData, error: idError } = await supabase
-        .rpc('generate_id_pendaftaran');
-
-      if (idError) {
-        console.error('Error generating ID pendaftaran:', idError);
-        throw new Error('Gagal generate ID pendaftaran');
-      }
-
-      // Generate nomor antrian
-      const { data: noAntrianData, error: antrianError } = await supabase
-        .rpc('generate_no_antrian');
-
-      if (antrianError) {
-        console.error('Error generating nomor antrian:', antrianError);
-        throw new Error('Gagal generate nomor antrian');
-      }
-
-      const insertData: RegistrationInsert = {
-        id_pendaftaran: idPendaftaranData,
-        no_antrian: noAntrianData,
-        patient_id: patientId,
-        status: 'Dalam Antrian'
-      };
-
-      const { data, error } = await supabase
-        .from('registrations')
-        .insert([insertData])
-        .select(`
-          *,
-          patients (
-            rekam_medik,
-            nama_lengkap
-          )
-        `)
-        .single();
-
-      if (error) {
-        console.error('Error creating registration:', error);
-        throw new Error('Gagal menyimpan data pendaftaran');
-      }
-
-      return convertToRegistration(data);
-    } catch (error) {
-      console.error('Error in createRegistration:', error);
-      throw error;
-    }
-  },
-
-  // Update registration status
-  async updateRegistrationStatus(id: string, status: 'Dalam Antrian' | 'Dalam Pemeriksaan' | 'Selesai'): Promise<Registration> {
-    try {
-      const { data, error } = await supabase
-        .from('registrations')
-        .update({ status })
-        .eq('id', id)
-        .select(`
-          *,
-          patients (
-            rekam_medik,
-            nama_lengkap
-          )
-        `)
-        .single();
-
-      if (error) {
-        console.error('Error updating registration status:', error);
-        throw new Error('Gagal mengupdate status pendaftaran');
-      }
-
-      return convertToRegistration(data);
-    } catch (error) {
-      console.error('Error in updateRegistrationStatus:', error);
-      throw error;
-    }
-  },
-
-  // Delete registration
   async deleteRegistration(id: string): Promise<void> {
     try {
-      const { error } = await supabase
-        .from('registrations')
-        .delete()
-        .eq('id', id);
+      const response = await fetch(`${API_BASE_URL}/registrations/${id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+      });
 
-      if (error) {
-        console.error('Error deleting registration:', error);
-        throw new Error('Gagal menghapus data pendaftaran');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          `Gagal menghapus pendaftaran: ${
+            errorData.message || response.statusText
+          }`
+        );
       }
     } catch (error) {
-      console.error('Error in deleteRegistration:', error);
+      console.error("Error in deleteRegistration:", error);
       throw error;
     }
   },
-
-  // Get registrations by date range
-  async getRegistrationsByDateRange(startDate: string, endDate: string): Promise<Registration[]> {
-    try {
-      const { data, error } = await supabase
-        .from('registrations')
-        .select(`
-          *,
-          patients (
-            rekam_medik,
-            nama_lengkap
-          )
-        `)
-        .gte('tanggal', startDate)
-        .lte('tanggal', endDate)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching registrations by date:', error);
-        throw new Error('Gagal mengambil data pendaftaran');
-      }
-
-      return data ? data.map(convertToRegistration) : [];
-    } catch (error) {
-      console.error('Error in getRegistrationsByDateRange:', error);
-      throw error;
-    }
-  }
 };

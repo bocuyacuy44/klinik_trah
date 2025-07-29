@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit, Eye, Trash2 } from 'lucide-react';
 import { Patient } from '../../types';
 import Breadcrumb from '../Layout/Breadcrumb';
@@ -9,6 +8,7 @@ interface PatientsDataProps {
   onNavigateToDashboard: () => void;
   onNavigateToNewPatient: () => void;
   onSelectPatient?: (patient: Patient) => void;
+  onEditPatient?: (patient: Patient) => void;
   onShowNotification?: (type: 'success' | 'error', message: string) => void;
 }
 
@@ -16,14 +16,13 @@ const PatientsData: React.FC<PatientsDataProps> = ({
   onNavigateToDashboard, 
   onNavigateToNewPatient, 
   onSelectPatient,
+  onEditPatient,
   onShowNotification
 }) => {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
-
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Load patients from database
   useEffect(() => {
     loadPatients();
   }, []);
@@ -32,7 +31,7 @@ const PatientsData: React.FC<PatientsDataProps> = ({
     try {
       setLoading(true);
       const data = await patientService.getAllPatients();
-      setPatients(data);
+      setPatients(data as Patient[]);
     } catch (error) {
       console.error('Error loading patients:', error);
       onShowNotification?.('error', 'Gagal memuat data pasien');
@@ -62,6 +61,12 @@ const PatientsData: React.FC<PatientsDataProps> = ({
   const handleSelectPatient = (patient: Patient) => {
     if (onSelectPatient) {
       onSelectPatient(patient);
+    }
+  };
+
+  const handleEditPatient = (patient: Patient) => {
+    if (onEditPatient) {
+      onEditPatient(patient);
     }
   };
 
@@ -163,11 +168,11 @@ const PatientsData: React.FC<PatientsDataProps> = ({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          // Edit patient functionality
+                          handleEditPatient(patient);
                         }}
                         className="text-blue-600 hover:text-blue-800 transition-colors"
                       >
-                        <Edit className="w-4 h-4" />
+                        <Edit className="w-5 h-5" />
                       </button>
                       <button
                         onClick={(e) => {
@@ -176,7 +181,7 @@ const PatientsData: React.FC<PatientsDataProps> = ({
                         }}
                         className="text-green-600 hover:text-green-800 transition-colors"
                       >
-                        <Eye className="w-4 h-4" />
+                        <Eye className="w-5 h-5" />
                       </button>
                       <button
                         onClick={(e) => {
@@ -185,7 +190,7 @@ const PatientsData: React.FC<PatientsDataProps> = ({
                         }}
                         className="text-red-600 hover:text-red-800 transition-colors"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-5 h-5" />
                       </button>
                     </div>
                   </td>

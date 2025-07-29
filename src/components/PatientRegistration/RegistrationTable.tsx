@@ -16,50 +16,36 @@ const RegistrationTable: React.FC<RegistrationTableProps> = ({
   onView,
   onDelete
 }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [searchIdPendaftaran, setSearchIdPendaftaran] = useState('');
+  const [searchNoRekamMedik, setSearchNoRekamMedik] = useState('');
+  const [searchPasien, setSearchPasien] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
   const filteredRegistrations = registrations.filter(reg => {
-    const matchesSearch = 
-      reg.idPendaftaran.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      reg.noRekamMedik.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      reg.pasien.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = !statusFilter || reg.status === statusFilter;
-    
+    const matchesIdPendaftaran = !searchIdPendaftaran || 
+      reg.idPendaftaran.toLowerCase().includes(searchIdPendaftaran.toLowerCase());
+    const matchesNoRekamMedik = !searchNoRekamMedik || 
+      (reg.noRekamMedik && reg.noRekamMedik.toLowerCase().includes(searchNoRekamMedik.toLowerCase()));
+    const matchesPasien = !searchPasien || 
+      (reg.pasien && reg.pasien.toLowerCase().includes(searchPasien.toLowerCase()));
     const matchesDateRange = (!dateFrom || reg.tanggal >= dateFrom) && 
                            (!dateTo || reg.tanggal <= dateTo);
     
-    return matchesSearch && matchesStatus && matchesDateRange;
+    return matchesIdPendaftaran && matchesNoRekamMedik && matchesPasien && matchesDateRange;
   });
 
   const totalPages = Math.ceil(filteredRegistrations.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedRegistrations = filteredRegistrations.slice(startIndex, startIndex + itemsPerPage);
 
-  const getStatusBadge = (status: string) => {
-    const styles = {
-      'Dalam Antrian': 'bg-yellow-100 text-yellow-800',
-      'Dalam Pemeriksaan': 'bg-blue-100 text-blue-800',
-      'Selesai': 'bg-green-100 text-green-800'
-    };
-    
-    return (
-      <span className={`px-2 py-1 text-xs font-medium rounded-full ${styles[status as keyof typeof styles]}`}>
-        {status}
-      </span>
-    );
-  };
-
   return (
     <div className="bg-white rounded-lg border border-gray-200">
       {/* Filters */}
       <div className="p-4 border-b border-gray-200">
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal</label>
             <div className="flex space-x-2">
@@ -92,8 +78,8 @@ const RegistrationTable: React.FC<RegistrationTableProps> = ({
               <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
               <input
                 type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={searchIdPendaftaran}
+                onChange={(e) => setSearchIdPendaftaran(e.target.value)}
                 className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Cari..."
               />
@@ -103,11 +89,13 @@ const RegistrationTable: React.FC<RegistrationTableProps> = ({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">No Rekam Medik</label>
             <div className="relative">
-              <Filter className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
               <input
                 type="text"
+                value={searchNoRekamMedik}
+                onChange={(e) => setSearchNoRekamMedik(e.target.value)}
                 className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Filter..."
+                placeholder="Cari..."
               />
             </div>
           </div>
@@ -115,27 +103,15 @@ const RegistrationTable: React.FC<RegistrationTableProps> = ({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Pasien</label>
             <div className="relative">
-              <Filter className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
               <input
                 type="text"
+                value={searchPasien}
+                onChange={(e) => setSearchPasien(e.target.value)}
                 className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Filter..."
+                placeholder="Cari..."
               />
             </div>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">Sel...</option>
-              <option value="Dalam Antrian">Dalam Antrian</option>
-              <option value="Dalam Pemeriksaan">Dalam Pemeriksaan</option>
-              <option value="Selesai">Selesai</option>
-            </select>
           </div>
         </div>
       </div>
@@ -161,9 +137,6 @@ const RegistrationTable: React.FC<RegistrationTableProps> = ({
                 Pasien
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                Status
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
                 Aksi
               </th>
             </tr>
@@ -171,7 +144,7 @@ const RegistrationTable: React.FC<RegistrationTableProps> = ({
           <tbody className="bg-white divide-y divide-gray-200">
             {paginatedRegistrations.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
                   Tidak ada data.
                 </td>
               </tr>
@@ -188,13 +161,10 @@ const RegistrationTable: React.FC<RegistrationTableProps> = ({
                     {registration.idPendaftaran}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-900">
-                    {registration.noRekamMedik}
+                    {registration.noRekamMedik || '-'}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-900">
-                    {registration.pasien}
-                  </td>
-                  <td className="px-4 py-3 text-sm">
-                    {getStatusBadge(registration.status)}
+                    {registration.pasien || '-'}
                   </td>
                   <td className="px-4 py-3 text-sm">
                     <div className="flex space-x-2">
@@ -202,19 +172,19 @@ const RegistrationTable: React.FC<RegistrationTableProps> = ({
                         onClick={() => onEdit(registration)}
                         className="text-blue-600 hover:text-blue-800 transition-colors"
                       >
-                        <Edit className="w-4 h-4" />
+                        <Edit className="w-5 h-5" />
                       </button>
                       <button
                         onClick={() => onView(registration)}
                         className="text-green-600 hover:text-green-800 transition-colors"
                       >
-                        <Eye className="w-4 h-4" />
+                        <Eye className="w-5 h-5" />
                       </button>
                       <button
                         onClick={() => onDelete(registration.id)}
                         className="text-red-600 hover:text-red-800 transition-colors"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-5 h-5" />
                       </button>
                     </div>
                   </td>
