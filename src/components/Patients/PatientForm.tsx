@@ -1091,11 +1091,25 @@ const PatientForm: React.FC<PatientFormProps> = ({
                             }}
                           />
                         ) : (
-                          <img
-                            src="https://mhdc.co.id/wp-content/uploads//Rontgen-gigi-panoramik.jpg"
-                            alt="Placeholder"
-                            className="w-full h-full object-cover opacity-70"
-                          />
+                          <>
+                            {index < 11 ? (
+                              <img
+                                src={`/assets/img/gambar_kolom${index + 1}.png`}
+                                alt={`Placeholder ${labels[index]}`}
+                                className="max-w-full max-h-full object-contain opacity-70"
+                                onError={(e) => {
+                                  // If local image fails to load, show default placeholder
+                                  const target = e.target as HTMLImageElement;
+                                  target.src = "https://mhdc.co.id/wp-content/uploads//Rontgen-gigi-panoramik.jpg";
+                                  target.onerror = null; // Prevent infinite loop
+                                }}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-600 text-sm font-medium">
+                                Gambar extra {index - 10}
+                              </div>
+                            )}
+                          </>
                         )}
                         <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center text-center justify-center text-white text-base opacity-0 transition-opacity hover-label">
                           {labels[index]}

@@ -29,7 +29,9 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
           </div>
           <div className="text-sm">
             <div className="font-medium text-gray-900">{user?.name || 'Admin'}</div>
-            <div className="text-gray-500 text-xs">Administrasi</div>
+            <div className="text-gray-500 text-xs">
+              {user?.role === 'dokter' ? 'Dokter' : 'Administrasi'}
+            </div>
           </div>
           <button
             onClick={onLogout}

@@ -9,6 +9,7 @@ import PatientForm from "./components/Patients/PatientForm";
 import SelectPatient from "./components/PatientRegistration/SelectPatient";
 import CreateRegistration from "./components/PatientRegistration/CreateRegistration";
 import EditRegistration from "./components/PatientRegistration/EditRegistration";
+import PatientDetailView from "./components/PatientRegistration/PatientDetailView";
 import Notification from "./components/Notification";
 import { User, Patient, Registration } from "./types";
 import { patientService } from "./services/patientService";
@@ -30,6 +31,8 @@ function App() {
     | "create-registration"
     | "edit-patient"
     | "edit-registration"
+    | "patient-detail"
+    | "patient-detail-from-data"
   >("pendaftaran-pasien");
   const [patients, setPatients] = useState<Patient[]>([]);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
@@ -52,9 +55,41 @@ function App() {
   // Update handleLogout untuk menghapus data dari localStorage
   const handleLogout = () => {
     localStorage.removeItem("user");
+    localStorage.removeItem("token");
     setUser(null);
     setCurrentView("pendaftaran-pasien");
   };
+
+  // Verifikasi token saat aplikasi dimuat
+  useEffect(() => {
+    const verifyToken = async () => {
+      const token = localStorage.getItem("token");
+      const savedUser = localStorage.getItem("user");
+      
+      if (token && savedUser) {
+        try {
+          const response = await fetch("http://localhost:3001/verify-token", {
+            headers: {
+              "Authorization": `Bearer ${token}`,
+            },
+          });
+          
+          if (!response.ok) {
+            // Token tidak valid, hapus dari localStorage
+            localStorage.removeItem("user");
+            localStorage.removeItem("token");
+            setUser(null);
+          }
+        } catch (error) {
+          console.error("Error verifying token:", error);
+          // Jika ada error, tetap gunakan data dari localStorage
+          // tapi user bisa logout manual jika diperlukan
+        }
+      }
+    };
+
+    verifyToken();
+  }, []);
 
   const handleMenuClick = (menu: string) => {
     setActiveMenu(menu);
@@ -92,9 +127,21 @@ function App() {
     setActiveMenu("pendaftaran-pasien");
   };
 
+  const handleNavigateToPatientDetail = (registration: Registration) => {
+    setSelectedRegistration(registration);
+    setCurrentView("patient-detail");
+    setActiveMenu("pendaftaran-pasien");
+  };
+
   const handleNavigateToEditPatient = (patient: Patient) => {
     setSelectedPatient(patient);
     setCurrentView("edit-patient");
+    setActiveMenu("pasien");
+  };
+
+  const handleNavigateToPatientDetailFromData = (patient: Patient) => {
+    setSelectedPatient(patient);
+    setCurrentView("patient-detail-from-data");
     setActiveMenu("pasien");
   };
 
@@ -164,6 +211,7 @@ function App() {
             onNavigateToNewPatient={handleNavigateToNewPatient}
             onNavigateToSelectPatient={handleNavigateToSelectPatient}
             onNavigateToEditRegistration={handleNavigateToEditRegistration}
+            onNavigateToPatientDetail={handleNavigateToPatientDetail}
             onShowNotification={showNotification}
           />
         );
@@ -222,6 +270,7 @@ function App() {
             onNavigateToNewPatient={handleNavigateToNewPatient}
             onSelectPatient={handleNavigateToCreateRegistration}
             onEditPatient={handleNavigateToEditPatient}
+            onViewPatientDetail={handleNavigateToPatientDetailFromData}
             onShowNotification={showNotification}
           />
         );
@@ -248,6 +297,34 @@ function App() {
             <p className="text-red-600">Error: Pasien tidak ditemukan</p>
           </div>
         );
+      case "patient-detail":
+        return selectedRegistration ? (
+          <PatientDetailView
+            registration={selectedRegistration}
+            onNavigateBack={() => setCurrentView("pendaftaran-pasien")}
+            onShowNotification={showNotification}
+          />
+        ) : (
+          <div className="p-6">
+            <p className="text-red-600">
+              Error: Data pendaftaran tidak ditemukan
+            </p>
+          </div>
+        );
+      case "patient-detail-from-data":
+        return selectedPatient ? (
+          <PatientDetailView
+            patient={selectedPatient}
+            onNavigateBack={() => setCurrentView("pasien")}
+            onShowNotification={showNotification}
+          />
+        ) : (
+          <div className="p-6">
+            <p className="text-red-600">
+              Error: Data pasien tidak ditemukan
+            </p>
+          </div>
+        );
       case "laporan":
         return (
           <div className="p-6">
@@ -266,6 +343,7 @@ function App() {
             onNavigateToNewPatient={handleNavigateToNewPatient}
             onNavigateToSelectPatient={handleNavigateToSelectPatient}
             onNavigateToEditRegistration={handleNavigateToEditRegistration}
+            onNavigateToPatientDetail={handleNavigateToPatientDetail}
             onShowNotification={showNotification}
           />
         );

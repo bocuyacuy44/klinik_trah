@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 import RegistrationTable from "./RegistrationTable";
+import ConfirmationModal from "../UI/ConfirmationModal";
 import { Registration, Patient } from "../../types";
 import { registrationService } from "../../services/registrationService";
 import { patientService } from "../../services/patientService";
@@ -13,6 +14,7 @@ interface PatientRegistrationProps {
     patient: Patient,
     registration: Registration
   ) => void;
+  onNavigateToPatientDetail: (registration: Registration) => void;
   onShowNotification?: (type: "success" | "error", message: string) => void;
 }
 
@@ -21,9 +23,19 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({
   onNavigateToNewPatient,
   onNavigateToSelectPatient,
   onNavigateToEditRegistration,
+  onNavigateToPatientDetail,
   onShowNotification,
 }) => {
   const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    registration: Registration | null;
+    loading: boolean;
+  }>({
+    isOpen: false,
+    registration: null,
+    loading: false,
+  });
 
   // Fungsi untuk mengambil data pendaftaran dari Supabase
   useEffect(() => {
@@ -56,24 +68,42 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({
   };
 
   const handleView = (registration: Registration) => {
-    console.log("View registration:", registration);
+    onNavigateToPatientDetail(registration);
   };
 
   /**
    * Menangani penghapusan pendaftaran dengan konfirmasi dan notifikasi.
-   * @param id ID pendaftaran yang akan dihapus
+   * @param registration Registration yang akan dihapus
    */
-  const handleDelete = async (id: string) => {
-    if (confirm("Apakah Anda yakin ingin membatalkan pendaftaran ini?")) {
-      try {
-        await registrationService.deleteRegistration(id);
-        setRegistrations((prev) => prev.filter((reg) => reg.id !== id));
-        onShowNotification?.("success", "Data pendaftaran berhasil dibatalkan");
-      } catch (error) {
-        console.error("Gagal membatalkan data:", error);
-        onShowNotification?.("error", "Gagal membatalkan data pendaftaran");
-      }
+  const handleDelete = async (registration: Registration) => {
+    setDeleteModal({
+      isOpen: true,
+      registration,
+      loading: false,
+    });
+  };
+
+  const confirmDeleteRegistration = async () => {
+    if (!deleteModal.registration) return;
+
+    setDeleteModal((prev) => ({ ...prev, loading: true }));
+
+    try {
+      await registrationService.deleteRegistration(deleteModal.registration.id);
+      setRegistrations((prev) =>
+        prev.filter((reg) => reg.id !== deleteModal.registration!.id)
+      );
+      onShowNotification?.("success", "Data pendaftaran berhasil dibatalkan");
+      setDeleteModal({ isOpen: false, registration: null, loading: false });
+    } catch (error) {
+      console.error("Gagal membatalkan data:", error);
+      onShowNotification?.("error", "Gagal membatalkan data pendaftaran");
+      setDeleteModal((prev) => ({ ...prev, loading: false }));
     }
+  };
+
+  const cancelDeleteRegistration = () => {
+    setDeleteModal({ isOpen: false, registration: null, loading: false });
   };
 
   return (
@@ -107,6 +137,19 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({
         onEdit={handleEdit}
         onView={handleView}
         onDelete={handleDelete}
+      />
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={deleteModal.isOpen}
+        title="Batalkan Pendaftaran"
+        message={`Apakah Anda yakin ingin membatalkan pendaftaran dengan ID "${deleteModal.registration?.idPendaftaran}" untuk pasien "${deleteModal.registration?.pasien}"? Tindakan ini tidak dapat dibatalkan.`}
+        type="warning"
+        confirmText="Ya, Batalkan"
+        cancelText="Batal"
+        onConfirm={confirmDeleteRegistration}
+        onCancel={cancelDeleteRegistration}
+        loading={deleteModal.loading}
       />
     </div>
   );

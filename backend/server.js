@@ -4,12 +4,35 @@ const cors = require("cors");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 const app = express();
 const port = 3001;
 
+// JWT Secret - dalam production, gunakan environment variable
+const JWT_SECRET = process.env.JWT_SECRET || "klinik_secret_key_2024";
+
 app.use(cors({ origin: "http://localhost:5173" }));
 app.use(express.json());
+
+// Middleware untuk verifikasi JWT
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ message: 'Access token required' });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ message: 'Invalid or expired token' });
+    }
+    req.user = user;
+    next();
+  });
+};
 
 // Serve static files from uploads directory
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
@@ -56,6 +79,79 @@ const pool = new Pool({
   database: "klinik_db",
   password: "2106044!", // Ganti dengan password Anda
   port: 5432,
+});
+
+// Login endpoint
+app.post("/login", async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+      return res.status(400).json({ message: "Username dan password harus diisi" });
+    }
+
+    // Cari user berdasarkan username
+    const result = await pool.query(
+      "SELECT * FROM users WHERE username = $1 AND is_active = true",
+      [username]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({ message: "Username atau password salah" });
+    }
+
+    const user = result.rows[0];
+
+    // Verifikasi password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      return res.status(401).json({ message: "Username atau password salah" });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        fullName: user.full_name
+      },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    // Return user data tanpa password
+    const { password: _, ...userWithoutPassword } = user;
+    
+    res.json({
+      message: "Login berhasil",
+      token,
+      user: userWithoutPassword
+    });
+
+  } catch (error) {
+    console.error("Error during login:", error);
+    res.status(500).json({ message: "Terjadi kesalahan server", error: error.message });
+  }
+});
+
+// Endpoint untuk verifikasi token dan mendapatkan user info
+app.get("/verify-token", authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT id, username, email, full_name, role, is_active, created_at FROM users WHERE id = $1 AND is_active = true",
+      [req.user.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "User tidak ditemukan" });
+    }
+
+    res.json({ user: result.rows[0] });
+  } catch (error) {
+    console.error("Error verifying token:", error);
+    res.status(500).json({ message: "Terjadi kesalahan server", error: error.message });
+  }
 });
 
 // Upload image endpoint

@@ -1,45 +1,72 @@
-import React, { useState } from 'react';
-import { Calendar, Search, Filter, Edit, Eye, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Registration } from '../../types';
-import { formatDate } from '../../utils/generators';
+import React, { useState } from "react";
+import {
+  Calendar,
+  Search,
+  Filter,
+  Edit,
+  Eye,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { Registration } from "../../types";
+import { formatDate } from "../../utils/generators";
 
 interface RegistrationTableProps {
   registrations: Registration[];
   onEdit: (registration: Registration) => void;
   onView: (registration: Registration) => void;
-  onDelete: (id: string) => void;
+  onDelete: (registration: Registration) => void;
 }
 
 const RegistrationTable: React.FC<RegistrationTableProps> = ({
   registrations,
   onEdit,
   onView,
-  onDelete
+  onDelete,
 }) => {
-  const [searchIdPendaftaran, setSearchIdPendaftaran] = useState('');
-  const [searchNoRekamMedik, setSearchNoRekamMedik] = useState('');
-  const [searchPasien, setSearchPasien] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [searchIdPendaftaran, setSearchIdPendaftaran] = useState("");
+  const [searchNoRekamMedik, setSearchNoRekamMedik] = useState("");
+  const [searchPasien, setSearchPasien] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  const filteredRegistrations = registrations.filter(reg => {
-    const matchesIdPendaftaran = !searchIdPendaftaran || 
-      reg.idPendaftaran.toLowerCase().includes(searchIdPendaftaran.toLowerCase());
-    const matchesNoRekamMedik = !searchNoRekamMedik || 
-      (reg.noRekamMedik && reg.noRekamMedik.toLowerCase().includes(searchNoRekamMedik.toLowerCase()));
-    const matchesPasien = !searchPasien || 
-      (reg.pasien && reg.pasien.toLowerCase().includes(searchPasien.toLowerCase()));
-    const matchesDateRange = (!dateFrom || reg.tanggal >= dateFrom) && 
-                           (!dateTo || reg.tanggal <= dateTo);
-    
-    return matchesIdPendaftaran && matchesNoRekamMedik && matchesPasien && matchesDateRange;
+  const filteredRegistrations = registrations.filter((reg) => {
+    const matchesIdPendaftaran =
+      !searchIdPendaftaran ||
+      reg.idPendaftaran
+        .toLowerCase()
+        .includes(searchIdPendaftaran.toLowerCase());
+    const matchesNoRekamMedik =
+      !searchNoRekamMedik ||
+      (reg.noRekamMedik &&
+        reg.noRekamMedik
+          .toLowerCase()
+          .includes(searchNoRekamMedik.toLowerCase()));
+    const matchesPasien =
+      !searchPasien ||
+      (reg.pasien &&
+        reg.pasien.toLowerCase().includes(searchPasien.toLowerCase()));
+    const matchesDateRange =
+      (!dateFrom || reg.tanggal >= dateFrom) &&
+      (!dateTo || reg.tanggal <= dateTo);
+
+    return (
+      matchesIdPendaftaran &&
+      matchesNoRekamMedik &&
+      matchesPasien &&
+      matchesDateRange
+    );
   });
 
   const totalPages = Math.ceil(filteredRegistrations.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedRegistrations = filteredRegistrations.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedRegistrations = filteredRegistrations.slice(
+    startIndex,
+    startIndex + itemsPerPage
+  );
 
   return (
     <div className="bg-white rounded-lg border border-gray-200">
@@ -47,7 +74,9 @@ const RegistrationTable: React.FC<RegistrationTableProps> = ({
       <div className="p-4 border-b border-gray-200">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Tanggal
+            </label>
             <div className="flex space-x-2">
               <div className="relative flex-1">
                 <Calendar className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
@@ -71,9 +100,11 @@ const RegistrationTable: React.FC<RegistrationTableProps> = ({
               </div>
             </div>
           </div>
-          
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">ID Pendaftaran</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              ID Pendaftaran
+            </label>
             <div className="relative">
               <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
               <input
@@ -85,9 +116,11 @@ const RegistrationTable: React.FC<RegistrationTableProps> = ({
               />
             </div>
           </div>
-          
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">No Rekam Medik</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              No Rekam Medik
+            </label>
             <div className="relative">
               <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
               <input
@@ -99,9 +132,11 @@ const RegistrationTable: React.FC<RegistrationTableProps> = ({
               />
             </div>
           </div>
-          
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Pasien</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Pasien
+            </label>
             <div className="relative">
               <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
               <input
@@ -161,10 +196,10 @@ const RegistrationTable: React.FC<RegistrationTableProps> = ({
                     {registration.idPendaftaran}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-900">
-                    {registration.noRekamMedik || '-'}
+                    {registration.noRekamMedik || "-"}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-900">
-                    {registration.pasien || '-'}
+                    {registration.pasien || "-"}
                   </td>
                   <td className="px-4 py-3 text-sm">
                     <div className="flex space-x-2">
@@ -181,7 +216,7 @@ const RegistrationTable: React.FC<RegistrationTableProps> = ({
                         <Eye className="w-5 h-5" />
                       </button>
                       <button
-                        onClick={() => onDelete(registration.id)}
+                        onClick={() => onDelete(registration)}
                         className="text-red-600 hover:text-red-800 transition-colors"
                       >
                         <Trash2 className="w-5 h-5" />
@@ -199,7 +234,9 @@ const RegistrationTable: React.FC<RegistrationTableProps> = ({
       {totalPages > 1 && (
         <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
           <div className="text-sm text-gray-700">
-            Menampilkan {startIndex + 1} sampai {Math.min(startIndex + itemsPerPage, filteredRegistrations.length)} dari {filteredRegistrations.length} entri
+            Menampilkan {startIndex + 1} sampai{" "}
+            {Math.min(startIndex + itemsPerPage, filteredRegistrations.length)}{" "}
+            dari {filteredRegistrations.length} entri
           </div>
           <div className="flex space-x-2">
             <button
@@ -213,7 +250,9 @@ const RegistrationTable: React.FC<RegistrationTableProps> = ({
               {currentPage} / {totalPages}
             </span>
             <button
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              onClick={() =>
+                setCurrentPage(Math.min(totalPages, currentPage + 1))
+              }
               disabled={currentPage === totalPages}
               className="px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
             >
